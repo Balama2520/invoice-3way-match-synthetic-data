@@ -39,19 +39,35 @@ python -m pytest -q
 - `data/generated/input/`: CSV files for entity and workflow-event tables.
 - `data/generated/derived/`: CSV files for match results and invoice-to-PO-line
   allocations.
+- `data/generated/documents/invoice_documents.zip`: 2,000 source invoice text
+  documents used by the extraction stage; the ZIP contains no ground-truth labels.
 - `data/generated/input.json` and `derived.json`: corresponding JSON exports.
 - `data/generated/ground_truth.csv`, `ground_truth.json`, and
   `ground_truth.sql`: isolated labels; do not use these as model input features.
 - `data/generated/validation.json`: integrity checks, decision/route accuracy,
-  approval/payment policy accuracy, duplicate precision/recall, issue distribution,
-  confusion matrix and payment-readiness metrics.
+  extraction-field accuracy, approval/payment policy accuracy, duplicate
+  precision/recall, issue distribution, confusion matrix and payment-readiness
+  metrics.
 - `data/generated/manifest.json`: row counts and SHA-256 checksums for exported
-  files; `source_manifest.json` documents synthetic provenance.
+  core records and all database tables; `source_manifest.json` documents
+  synthetic provenance.
 
 All records are synthetic. No external, personal or confidential data is used.
 The generator is deterministic and uses `config/rules.json` for the seed, scale
 baseline, line quantities/prices, tolerances, tax rates, approval threshold and
 receipt mix.
+
+Extract the generated text documents independently with the same parser:
+
+```powershell
+python -m src extract --input data/generated/documents/invoice_documents.zip --output data/extracted.json
+```
+
+`src.intake` parses the project's documented text-invoice layout and persists the
+extracted fields, source-document hash, and filename in the one-to-one
+`invoice_extraction` table. This is deterministic text parsing, **not OCR**; a
+production system would need an OCR or document-AI adapter to convert scanned
+PDFs/images into this layout before extraction.
 
 ## Matching and workflow policy
 
@@ -82,6 +98,8 @@ PO date. The exact subtype and expected decision/route are documented in
 - `src/schema_ground_truth.sql`: separate ground-truth schema.
 - `src/generator.py`: seeded master, transaction and anomaly generation plus
   CSV/JSON/SQL/SQLite exports.
+- `src/intake.py`: source-document format, field extraction, input validation,
+  and file/directory/ZIP intake.
 - `src/matcher.py`: three-way matching, exception routes and lifecycle/approval/
   payment events.
 - `src/validation.py`: joins, arithmetic, dates, lifecycle, eligibility and

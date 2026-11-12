@@ -2,10 +2,12 @@ import csv
 import hashlib
 import json
 import sqlite3
+import zipfile
 
 import pytest
 
 from src.generator import generate_dataset
+from src.intake import extract_invoice_source
 
 
 def test_starter_scale_generates_expected_volume_and_separate_labels(tmp_path):
@@ -18,7 +20,9 @@ def test_starter_scale_generates_expected_volume_and_separate_labels(tmp_path):
     assert summary["counts"]["purchase_order_line"] == 110
     assert summary["counts"]["goods_receipt"] == 90
     assert summary["counts"]["invoice"] == 100
+    assert summary["counts"]["invoice_extraction"] == 100
     assert summary["metrics"]["decision_accuracy"] == 1.0
+    assert summary["metrics"]["extraction_field_accuracy"] == 1.0
     assert summary["metrics"]["route_accuracy"] == 1.0
     assert summary["metrics"]["duplicate_precision"] == 1.0
     assert summary["metrics"]["duplicate_recall"] == 1.0
@@ -29,10 +33,22 @@ def test_starter_scale_generates_expected_volume_and_separate_labels(tmp_path):
     tables = {row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")}
     assert "ground_truth" not in tables
     assert connection.execute("PRAGMA foreign_key_check").fetchall() == []
+    document_hashes = dict(
+        connection.execute(
+            "SELECT document_name,document_sha256 FROM invoice_extraction"
+        ).fetchall()
+    )
     connection.close()
     assert (output / "ground_truth.csv").is_file()
     assert (output / "ground_truth.json").is_file()
     assert (output / "ground_truth.sql").is_file()
+    documents = extract_invoice_source(output / "documents" / "invoice_documents.zip")
+    assert len(documents) == 100
+    with zipfile.ZipFile(output / "documents" / "invoice_documents.zip") as archive:
+        assert all(
+            hashlib.sha256(archive.read(name)).hexdigest() == digest
+            for name, digest in document_hashes.items()
+        )
 
     labels = list(csv.DictReader((output / "ground_truth.csv").open(encoding="utf-8")))
     counts = {}
@@ -75,7 +91,11 @@ def test_all_documented_anomalies_are_present_at_full_scale(tmp_path):
     assert summary["counts"]["purchase_order_line"] == 2200
     assert summary["counts"]["goods_receipt"] == 1800
     assert summary["counts"]["invoice"] == 2000
+    assert summary["counts"]["invoice_extraction"] == 2000
+    manifest = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
+    assert manifest["table_row_counts"]["invoice_extraction"] == 2000
     assert summary["metrics"]["decision_accuracy"] == 1.0
+    assert summary["metrics"]["extraction_field_accuracy"] == 1.0
     assert summary["metrics"]["route_accuracy"] == 1.0
     assert summary["metrics"]["duplicate_precision"] == 1.0
     assert summary["metrics"]["duplicate_recall"] == 1.0
@@ -105,6 +125,18 @@ def test_all_documented_anomalies_are_present_at_full_scale(tmp_path):
     } <= subtypes
     assert len(labels) == 2000
     connection = sqlite3.connect(output / "dataset.sqlite")
+    document_hashes = dict(
+        connection.execute(
+            "SELECT document_name,document_sha256 FROM invoice_extraction"
+        ).fetchall()
+    )
+    line_counts = {
+        row[0]
+        for row in connection.execute(
+            "SELECT COUNT(*) FROM purchase_order_line GROUP BY po_id"
+        )
+    }
+    assert line_counts == set(range(1, 9))
     partial_receipts = connection.execute(
         "SELECT COUNT(*) FROM ("
         "SELECT pl.po_line_id FROM purchase_order_line pl "
@@ -124,6 +156,12 @@ def test_all_documented_anomalies_are_present_at_full_scale(tmp_path):
     connection.close()
     assert partial_receipts > 0
     assert over_receipts > 0
+    with zipfile.ZipFile(output / "documents" / "invoice_documents.zip") as archive:
+        assert len(archive.namelist()) == 2000
+        assert all(
+            hashlib.sha256(archive.read(name)).hexdigest() == digest
+            for name, digest in document_hashes.items()
+        )
 
 
 @pytest.mark.parametrize("scale", [0, -0.5, 10.1])

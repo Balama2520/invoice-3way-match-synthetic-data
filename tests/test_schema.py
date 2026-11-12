@@ -7,7 +7,7 @@ SRC = Path(__file__).resolve().parents[1] / "src"
 CORE = ["vendor", "purchase_order", "purchase_order_line", "goods_receipt",
         "goods_receipt_line", "invoice", "invoice_line", "approval", "payment"]
 EXTRA = ["invoice_status_event", "approval_event", "payment_event",
-         "invoice_match_result", "invoice_line_po_line_match"]
+         "invoice_match_result", "invoice_line_po_line_match", "invoice_extraction"]
 GROUND_TRUTH_COLUMNS = {"issue_type", "defect_subtype", "secondary_issue_types",
                         "expected_decision", "expected_route",
                         "paired_invoice_id", "injection_rule"}

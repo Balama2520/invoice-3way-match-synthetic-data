@@ -114,9 +114,21 @@ Rules that are not in DDL (arithmetic, date order, lifecycle) are enforced by
 | invoice_status_event | append-only invoice lifecycle history | event_id PK; (invoice_id, event_seq) unique; from_status, to_status, event_date, actor_role, reason_code |
 | approval_event | approval history | event_id PK; (approval_id, event_seq) unique; event_type requested/approved/rejected |
 | payment_event | payment history | event_id PK; (payment_id, event_seq) unique; event_type scheduled/released |
+| invoice_extraction | source-document extraction trace (1:1 with invoice) | extraction_id PK; invoice_id unique FK; document name, SHA-256, status, date, extracted_fields_json |
 | invoice_match_result | engine output per invoice | invoice_id PK; decision, route, check flags, blocked, payment_ready |
 | invoice_line_po_line_match | bridge (N:M) engine allocation | match_id PK; (invoice_line_id, po_line_id) unique; price/quantity/tax variance |
 | ground_truth | SEPARATE file; labels from injection recipes | invoice_id; issue_type, defect_subtype, expected_decision, expected_route, paired_invoice_id, injection_rule |
+
+### invoice_extraction fields
+| Field | Type | Req | Allowed values / format | Unit | Unique | Validation rule |
+|---|---|---|---|---|---|---|
+| extraction_id | TEXT | Y | `EXT-<invoice-id>` | - | PK | matches the linked invoice ID |
+| invoice_id | TEXT | Y | FK invoice | - | Yes | exactly one extraction record per invoice |
+| document_name | TEXT | Y | `invoices/<invoice-id>.txt` in the source ZIP | - | Yes | source document is present in `documents/invoice_documents.zip` |
+| document_sha256 | TEXT | Y | 64 lowercase hex characters | - | No | SHA-256 matches the UTF-8 source document bytes |
+| extraction_status | TEXT | Y | succeeded, needs_review | - | No | generated documents must parse successfully |
+| extracted_at | DATE | Y | ISO date | date | No | equals the invoice received date in the synthetic run |
+| extracted_fields_json | TEXT | Y | JSON object | - | No | extracted header/line fields must match invoice tables |
 
 ## 11. Lifecycle (invoice_status_event)
 Generated clean path: received -> extracted -> matched -> approval_pending -> approved -> payment_ready.
