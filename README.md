@@ -1,6 +1,90 @@
 # Invoice 3-Way Match: Synthetic Data, Decision Engine and Validation
 
-Seeded synthetic data generator, three-way match engine, validation and
-metrics for invoice / purchase order / goods receipt workflows.
+A reproducible, local-only invoice intake and three-way-match workflow. The project
+generates linked vendor, purchase order, receipt and invoice records; evaluates
+invoices against explicit rules; routes exceptions; creates approval and payment
+readiness records only for eligible invoices; and exports separate ground truth
+for evaluation.
 
-**Status:** work in progress. Full setup and run instructions will be added here.
+## Requirements
+
+- Python 3.10 or later
+- No runtime third-party packages; SQLite and the data pipeline use the Python
+  standard library
+- `pytest` is used for tests
+
+## Generate the full dataset
+
+From the project directory:
+
+```powershell
+python -m src generate --output data/generated --seed 20261022
+```
+
+The default scale (`1.0`) produces 300 vendors, 1,500 purchase orders, 2,200 PO
+lines, 1,800 goods receipts and 2,000 invoices. Use `--scale 0.1` for a 10% starter
+dataset, or a value from `0.01` through `10` for another scale. The same seed and
+scale produce byte-identical exported files.
+
+Run the tests:
+
+```powershell
+python -m pytest -q
+```
+
+## Generated files
+
+- `data/generated/dataset.sqlite` and `seed.sql`: input schema and records,
+  workflow events and derived match results. Neither contains ground-truth labels.
+- `data/generated/input/`: CSV files for entity and workflow-event tables.
+- `data/generated/derived/`: CSV files for match results and invoice-to-PO-line
+  allocations.
+- `data/generated/input.json` and `derived.json`: corresponding JSON exports.
+- `data/generated/ground_truth.csv`, `ground_truth.json`, and
+  `ground_truth.sql`: isolated labels; do not use these as model input features.
+- `data/generated/validation.json`: integrity checks, decision/route accuracy,
+  approval/payment policy accuracy, duplicate precision/recall, issue distribution,
+  confusion matrix and payment-readiness metrics.
+- `data/generated/manifest.json`: row counts and SHA-256 checksums for exported
+  files; `source_manifest.json` documents synthetic provenance.
+
+All records are synthetic. No external, personal or confidential data is used.
+The generator is deterministic and uses `config/rules.json` for the seed, scale
+baseline, line quantities/prices, tolerances, tax rates, approval threshold and
+receipt mix.
+
+## Matching and workflow policy
+
+Price variance is accepted at or below 2.00%; the boundary is included. Tax code
+and calculated tax must match the PO line. An invoice quantity must equal the PO
+line quantity and not exceed posted receipt quantity. A missing PO or posted
+receipt is held for the requester. Duplicate submissions and closed vendors are
+blocked. Arithmetic and date anomalies, tax mismatches, price variances and
+quantity mismatches route to operations analysis.
+
+Decision precedence is `DUPLICATE`, `CLOSED_VENDOR`, `ARITHMETIC_ANOMALY`,
+`DATE_ANOMALY`, `MISSING_RECEIPT`, `TAX_MISMATCH`, `PRICE_VARIANCE`,
+`QUANTITY_MISMATCH`, then `MATCHED`. Only `MATCHED` invoices receive approval
+events and a scheduled payment. Invoices above INR 100,000 require L1 and L2
+approval; others require L1. A payment-ready invoice has an approved event and a
+scheduled payment, not a released payment.
+
+The injected invoice distribution at full scale is 70% clean, 10% price
+variance, 8% quantity mismatch, 5% duplicate, 4% missing receipt and 3%
+tax/vendor errors. Tax/vendor cases are deterministically split among tax
+mismatch, closed vendor, invoice-total arithmetic error and invoice date before
+PO date. The exact subtype and expected decision/route are documented in
+`docs/data_dictionary.md`.
+
+## Project map
+
+- `src/schema.sql`: input and derived SQLite schema; ground truth is excluded.
+- `src/schema_ground_truth.sql`: separate ground-truth schema.
+- `src/generator.py`: seeded master, transaction and anomaly generation plus
+  CSV/JSON/SQL/SQLite exports.
+- `src/matcher.py`: three-way matching, exception routes and lifecycle/approval/
+  payment events.
+- `src/validation.py`: joins, arithmetic, dates, lifecycle, eligibility and
+  evaluation metrics.
+- `docs/data_dictionary.md`, `docs/er_diagram.md`, `docs/assumptions.md`: schema,
+  cardinalities, lifecycle and generation assumptions.

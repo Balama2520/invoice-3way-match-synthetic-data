@@ -5,7 +5,8 @@ quantities are whole units; percentages are stored as fractions (0.02 = 2%).
 "Req" = required (Y/N). All IDs are immutable and produced by deterministic counters.
 All foreign keys stay valid in v1, including for defect cases: defects are semantic
 (wrong price, closed vendor, duplicate), not broken joins (see assumption A13).
-Rules that are not in DDL (arithmetic, date order, lifecycle) are enforced by validate.py.
+Rules that are not in DDL (arithmetic, date order, lifecycle) are enforced by
+`src/validation.py`.
 
 ## 1. vendor
 | Field | Type | Req | Allowed values / format | Unit | Unique | Validation rule |
@@ -37,9 +38,9 @@ Rules that are not in DDL (arithmetic, date order, lifecycle) are enforced by va
 | line_number | INTEGER | Y | 1..8 | - | with po_id | 1-8 lines per PO |
 | sku | TEXT | Y | SKU-0001 .. (about 120 SKUs) | - | No | non-empty |
 | description | TEXT | Y | synthetic text | - | No | non-empty |
-| quantity | INTEGER | Y | 1..200 | units | No | > 0 |
-| unit_price | NUMERIC | Y | 50..50000 | INR/unit | No | > 0 |
-| tax_code | TEXT | Y | T0, T5, T12, T18 | - | No | rate from rules.yaml |
+| quantity | INTEGER | Y | 1..40 (generated range) | units | No | > 0 |
+| unit_price | NUMERIC | Y | INR 50..5000 (generated range) | INR/unit | No | > 0 |
+| tax_code | TEXT | Y | T0, T5, T12, T18 | - | No | rate from `config/rules.json` |
 | line_net | NUMERIC | Y | derived | INR | No | = quantity x unit_price (2 dp) |
 | tax_amount | NUMERIC | Y | derived | INR | No | = line_net x tax rate (2 dp) |
 | line_total | NUMERIC | Y | derived | INR | No | = line_net + tax_amount |
@@ -85,7 +86,7 @@ Rules that are not in DDL (arithmetic, date order, lifecycle) are enforced by va
 | po_line_id | TEXT | N | FK purchase_order_line | - | No | PO line referenced on the invoice, if any |
 | sku, description | TEXT | Y | as on invoice | - | No | non-empty |
 | quantity | INTEGER | Y | > 0 | units | No | compared with received quantity |
-| unit_price | NUMERIC | Y | > 0 | INR/unit | No | compared with PO price (+/-2%) |
+| unit_price | NUMERIC | Y | > 0 | INR/unit | No | compared with PO price (inclusive +/-2%) |
 | tax_code | TEXT | Y | T0, T5, T12, T18 | - | No | compared with PO line tax code |
 | line_net, tax_amount, line_total | NUMERIC | Y | derived | INR | No | computed from quantity, unit_price, tax rate |
 
@@ -118,10 +119,11 @@ Rules that are not in DDL (arithmetic, date order, lifecycle) are enforced by va
 | ground_truth | SEPARATE file; labels from injection recipes | invoice_id; issue_type, defect_subtype, expected_decision, expected_route, paired_invoice_id, injection_rule |
 
 ## 11. Lifecycle (invoice_status_event)
-received -> extracted -> matched -> approval_pending -> approved -> payment_ready -> paid
-extracted -> exception (terminal in the synthetic data: awaiting analyst)
-extracted -> blocked (terminal: duplicate or closed vendor)
-approval_pending -> rejected (terminal)
+Generated clean path: received -> extracted -> matched -> approval_pending -> approved -> payment_ready.
+matched -> exception (terminal in the synthetic data: awaiting analyst)
+matched -> blocked (terminal: duplicate or closed vendor)
+The schema also allows rejected and paid for downstream lifecycle extensions; this
+generator schedules eligible payments but does not release them.
 Rules: event_seq starts at 1 and increases by 1; each event's from_status equals the
 previous event's to_status; no payment_ready or paid for blocked, exception or rejected invoices.
 
