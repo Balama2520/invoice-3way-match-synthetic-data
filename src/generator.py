@@ -17,6 +17,7 @@ from typing import Any
 
 from src.matcher import evaluate_invoices
 from src.intake import extract_invoice_document, format_invoice_document
+from src.reporting import create_dashboard
 from src.validation import validate_database
 
 
@@ -868,6 +869,7 @@ def _export_dataset(
     database = sqlite3.connect(database_path)
     connection.backup(database)
     database.close()
+    create_dashboard(connection, summary, output_dir / "dashboard.html")
     files = sorted(
         path for path in output_dir.rglob("*")
         if path.is_file() and path.name != "manifest.json"

@@ -42,6 +42,12 @@ def test_starter_scale_generates_expected_volume_and_separate_labels(tmp_path):
     assert (output / "ground_truth.csv").is_file()
     assert (output / "ground_truth.json").is_file()
     assert (output / "ground_truth.sql").is_file()
+    dashboard = (output / "dashboard.html").read_text(encoding="utf-8")
+    assert "Exceptions to review" in dashboard
+    assert "Source SHA-256" in dashboard
+    assert "Duplicate invoice submission" in dashboard
+    assert "defect_subtype" not in dashboard
+    assert "paired_invoice_id" not in dashboard
     documents = extract_invoice_source(output / "documents" / "invoice_documents.zip")
     assert len(documents) == 100
     with zipfile.ZipFile(output / "documents" / "invoice_documents.zip") as archive:

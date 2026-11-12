@@ -25,6 +25,8 @@ The default scale (`1.0`) produces 300 vendors, 1,500 purchase orders, 2,200 PO
 lines, 1,800 goods receipts and 2,000 invoices. Use `--scale 0.1` for a 10% starter
 dataset, or a value from `0.01` through `10` for another scale. The same seed and
 scale produce byte-identical exported files.
+Open `data/generated/dashboard.html` in a browser to review metrics and filter
+invoice exceptions.
 
 Run the tests:
 
@@ -41,6 +43,8 @@ python -m pytest -q
   allocations.
 - `data/generated/documents/invoice_documents.zip`: 2,000 source invoice text
   documents used by the extraction stage; the ZIP contains no ground-truth labels.
+- `data/generated/dashboard.html`: offline, searchable exception dashboard with
+  failed checks, routes, lifecycle status, source hashes and aggregate metrics.
 - `data/generated/input.json` and `derived.json`: corresponding JSON exports.
 - `data/generated/ground_truth.csv`, `ground_truth.json`, and
   `ground_truth.sql`: isolated labels; do not use these as model input features.
