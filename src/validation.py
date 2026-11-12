@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 from collections import Counter
 from datetime import date, timedelta
 from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 from typing import Any
+
+from src.intake import parse_extracted_json
 
 
 CENT = Decimal("0.01")
@@ -21,6 +24,7 @@ PRIMARY_KEYS = {
     "goods_receipt_line": "grn_line_id",
     "invoice": "invoice_id",
     "invoice_line": "invoice_line_id",
+    "invoice_extraction": "extraction_id",
     "approval": "approval_id",
     "payment": "payment_id",
     "invoice_match_result": "invoice_id",
@@ -57,6 +61,77 @@ def validate_database(
         errors.append("Ground-truth invoice IDs are not unique.")
     if set(truth_by_invoice) != invoice_ids:
         errors.append("Ground truth does not contain exactly one row per invoice.")
+    extraction_rows = {
+        row["invoice_id"]: row
+        for row in connection.execute("SELECT * FROM invoice_extraction")
+    }
+    if set(extraction_rows) != invoice_ids:
+        errors.append("There must be exactly one extraction record per invoice.")
+    extraction_matches = 0
+    invoice_by_id = {row["invoice_id"]: row for row in invoice_rows}
+    for invoice_id, extraction in extraction_rows.items():
+        if extraction["extraction_id"] != f"EXT-{invoice_id}":
+            errors.append(f"Invoice {invoice_id} has an invalid extraction ID.")
+        if extraction["document_name"] != f"invoices/{invoice_id}.txt":
+            errors.append(f"Invoice {invoice_id} has an invalid source-document reference.")
+        if (
+            re.fullmatch(r"[0-9a-f]{64}", extraction["document_sha256"]) is None
+            or extraction["extraction_status"] != "succeeded"
+        ):
+            errors.append(f"Invoice {invoice_id} has invalid extraction provenance.")
+        try:
+            payload = parse_extracted_json(extraction["extracted_fields_json"])
+        except ValueError as error:
+            errors.append(f"Invoice {invoice_id} has invalid extracted fields: {error}")
+            continue
+        invoice = invoice_by_id[invoice_id]
+        try:
+            fields_match = (
+                payload.get("invoice_id") == invoice_id
+                and payload.get("vendor_id") == invoice["vendor_id"]
+                and payload.get("po_id") == invoice["po_id"]
+                and payload.get("vendor_invoice_number") == invoice["vendor_invoice_number"]
+                and payload.get("invoice_date") == invoice["invoice_date"]
+                and payload.get("received_date") == invoice["received_date"]
+                and payload.get("currency") == invoice["currency"]
+                and payload.get("source_channel") == invoice["source_channel"]
+                and _money(payload.get("net_amount", -1)) == _money(invoice["net_amount"])
+                and _money(payload.get("tax_amount", -1)) == _money(invoice["tax_amount"])
+                and _money(payload.get("total_amount", -1)) == _money(invoice["total_amount"])
+            )
+        except (ArithmeticError, TypeError, ValueError):
+            fields_match = False
+        extracted_lines = payload.get("lines")
+        db_lines = connection.execute(
+            "SELECT * FROM invoice_line WHERE invoice_id=? ORDER BY line_number",
+            (invoice_id,),
+        ).fetchall()
+        if not isinstance(extracted_lines, list) or len(extracted_lines) != len(db_lines):
+            fields_match = False
+        else:
+            for extracted_line, db_line in zip(extracted_lines, db_lines):
+                if not isinstance(extracted_line, dict):
+                    fields_match = False
+                    break
+                try:
+                    line_matches = (
+                        extracted_line.get("line_number") == db_line["line_number"]
+                        and extracted_line.get("po_line_id") == db_line["po_line_id"]
+                        and extracted_line.get("sku") == db_line["sku"]
+                        and extracted_line.get("description") == db_line["description"]
+                        and extracted_line.get("quantity") == db_line["quantity"]
+                        and _money(extracted_line.get("unit_price", -1))
+                        == _money(db_line["unit_price"])
+                        and extracted_line.get("tax_code") == db_line["tax_code"]
+                    )
+                except (ArithmeticError, TypeError, ValueError):
+                    line_matches = False
+                if not line_matches:
+                    fields_match = False
+                    break
+        if not fields_match:
+            errors.append(f"Invoice {invoice_id} database fields differ from extracted source fields.")
+        extraction_matches += fields_match
 
     for table, expected in expected_counts.items():
         actual = connection.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
@@ -125,6 +200,14 @@ def validate_database(
     ).fetchone()[0]
     if wrong_receipt_joins:
         errors.append(f"{wrong_receipt_joins} receipt line(s) reference a line from another PO.")
+    invalid_po_line_counts = connection.execute(
+        "SELECT COUNT(*) FROM ("
+        "SELECT po.po_id,COUNT(pl.po_line_id) AS line_count "
+        "FROM purchase_order po LEFT JOIN purchase_order_line pl ON pl.po_id=po.po_id "
+        "GROUP BY po.po_id HAVING line_count NOT BETWEEN 1 AND 8)"
+    ).fetchone()[0]
+    if invalid_po_line_counts:
+        errors.append(f"{invalid_po_line_counts} PO(s) have outside 1-8 PO lines.")
     invalid_vendor_dates = connection.execute(
         "SELECT COUNT(*) FROM purchase_order po JOIN vendor v ON v.vendor_id=po.vendor_id "
         "WHERE po.po_date<v.effective_from OR "
@@ -229,7 +312,6 @@ def validate_database(
     }
     if set(result_by_invoice) != invoice_ids:
         errors.append("There must be exactly one match result per invoice.")
-    invoice_by_id = {row["invoice_id"]: row for row in invoice_rows}
     decision_correct = 0
     route_correct = 0
     duplicate_pair_correct = 0
@@ -396,6 +478,7 @@ def validate_database(
                 "goods_receipt_line",
                 "invoice",
                 "invoice_line",
+                "invoice_extraction",
                 "approval",
                 "payment",
             )
@@ -403,6 +486,9 @@ def validate_database(
         "metrics": {
             "decision_accuracy": decision_correct / total_invoices if total_invoices else 1.0,
             "route_accuracy": route_correct / total_invoices if total_invoices else 1.0,
+            "extraction_field_accuracy": (
+                extraction_matches / total_invoices if total_invoices else 1.0
+            ),
             "approval_policy_accuracy": (
                 approval_policy_correct / matched_count if matched_count else 1.0
             ),

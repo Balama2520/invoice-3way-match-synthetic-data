@@ -97,6 +97,18 @@ CREATE TABLE invoice_line (
 );
 CREATE INDEX ix_invline_invoice ON invoice_line(invoice_id);
 
+-- Source-document extraction is 1:1 with an invoice and keeps provenance.
+CREATE TABLE invoice_extraction (
+  extraction_id TEXT PRIMARY KEY,
+  invoice_id TEXT NOT NULL UNIQUE REFERENCES invoice(invoice_id),
+  document_name TEXT NOT NULL UNIQUE,
+  document_sha256 TEXT NOT NULL CHECK (length(document_sha256) = 64),
+  extraction_status TEXT NOT NULL CHECK (extraction_status IN ('succeeded','needs_review')),
+  extracted_at TEXT NOT NULL CHECK (date(extracted_at) = extracted_at),
+  extracted_fields_json TEXT NOT NULL CHECK (length(extracted_fields_json) > 2),
+  CHECK (extraction_id = 'EXT-' || invoice_id)
+);
+
 CREATE TABLE approval (
   approval_id TEXT PRIMARY KEY CHECK (approval_id GLOB 'APR-2026-[0-9][0-9][0-9][0-9][0-9][0-9]'),
   invoice_id TEXT NOT NULL REFERENCES invoice(invoice_id),

@@ -8,6 +8,7 @@ import json
 import math
 import random
 import sqlite3
+import zipfile
 from collections import Counter
 from datetime import date, timedelta
 from decimal import Decimal, ROUND_HALF_UP
@@ -15,6 +16,7 @@ from pathlib import Path
 from typing import Any
 
 from src.matcher import evaluate_invoices
+from src.intake import extract_invoice_document, format_invoice_document
 from src.validation import validate_database
 
 
@@ -27,6 +29,7 @@ INPUT_TABLES = [
     "goods_receipt_line",
     "invoice",
     "invoice_line",
+    "invoice_extraction",
     "approval",
     "payment",
     "invoice_status_event",
@@ -93,6 +96,40 @@ def _apportion(total: int, weights: dict[str, float]) -> dict[str, int]:
     for key in order[:remaining]:
         result[key] += 1
     return result
+
+
+def _po_line_counts(
+    purchase_order_count: int,
+    total_line_count: int,
+    distribution: dict[str, int],
+    rng: random.Random,
+) -> list[int]:
+    if not purchase_order_count <= total_line_count <= purchase_order_count * 8:
+        raise ValueError("PO line count must allow 1-8 lines per purchase order.")
+    weights_total = sum(distribution.values())
+    weights = {
+        int(line_count): count / weights_total
+        for line_count, count in distribution.items()
+    }
+    apportioned = _apportion(purchase_order_count, weights)
+    line_counts = [
+        line_count
+        for line_count, count in apportioned.items()
+        for _ in range(count)
+    ]
+    current_total = sum(line_counts)
+    while current_total < total_line_count:
+        candidates = [index for index, value in enumerate(line_counts) if value < 8]
+        index = rng.choice(candidates)
+        line_counts[index] += 1
+        current_total += 1
+    while current_total > total_line_count:
+        candidates = [index for index, value in enumerate(line_counts) if value > 1]
+        index = rng.choice(candidates)
+        line_counts[index] -= 1
+        current_total -= 1
+    rng.shuffle(line_counts)
+    return line_counts
 
 
 def _connect() -> sqlite3.Connection:
@@ -339,7 +376,7 @@ def _insert_generated_records(
     counts: dict[str, int],
     rules: dict[str, Any],
     scale: float,
-) -> list[dict[str, Any]]:
+) -> tuple[list[dict[str, Any]], list[dict[str, str]]]:
     vendor_count = counts["vendors"]
     po_count = counts["purchase_orders"]
     line_count = counts["purchase_order_lines"]
@@ -425,11 +462,14 @@ def _insert_generated_records(
     }
 
     po_lines: dict[str, list[dict[str, Any]]] = {}
-    extra_line_count = max(0, min(line_count - po_count, po_count * 7))
-    two_line_po_ids = {po["po_id"] for po in rng.sample(pos, extra_line_count)}
+    po_line_counts = _po_line_counts(
+        po_count,
+        line_count,
+        rules["po_line_count_distribution"],
+        rng,
+    )
     line_generation = rules["line_generation"]
-    for po in pos:
-        count = 2 if po["po_id"] in two_line_po_ids else 1
+    for po, count in zip(pos, po_line_counts):
         lines = []
         for line_number in range(1, count + 1):
             sku_number = rng.randint(1, 120)
@@ -588,28 +628,83 @@ def _insert_generated_records(
 
     invoice_rows = []
     invoice_line_rows = []
+    extraction_rows = []
+    document_rows: list[dict[str, str]] = []
     truth_rows = []
     for spec in specs:
         invoice_id = spec["invoice_id"]
+        source_invoice = {
+            "vendor_id": spec["vendor_id"],
+            "po_id": spec["po_id"],
+            "vendor_invoice_number": spec["vendor_invoice_number"],
+            "invoice_date": spec["invoice_date"].isoformat(),
+            "received_date": spec["received_date"].isoformat(),
+            "currency": spec["currency"],
+            "source_channel": spec["source_channel"],
+            "net_amount": spec["net_amount"],
+            "tax_amount": spec["tax_amount"],
+            "total_amount": spec["total_amount"],
+        }
+        source_document = format_invoice_document(source_invoice, spec["lines"])
+        extracted = extract_invoice_document(source_document, invoice_id)
+        document_name = f"invoices/{invoice_id}.txt"
+        document_bytes = source_document.encode("utf-8")
+        document_rows.append(
+            {
+                "document_name": document_name,
+                "document_sha256": hashlib.sha256(document_bytes).hexdigest(),
+                "content": source_document,
+            }
+        )
         invoice_rows.append(
             {
                 "invoice_id": invoice_id,
-                "vendor_id": spec["vendor_id"],
-                "po_id": spec["po_id"],
-                "vendor_invoice_number": spec["vendor_invoice_number"],
-                "invoice_date": spec["invoice_date"].isoformat(),
-                "received_date": spec["received_date"].isoformat(),
-                "currency": spec["currency"],
-                "net_amount": spec["net_amount"],
-                "tax_amount": spec["tax_amount"],
-                "total_amount": spec["total_amount"],
-                "source_channel": spec["source_channel"],
+                "vendor_id": extracted["vendor_id"],
+                "po_id": extracted["po_id"],
+                "vendor_invoice_number": extracted["vendor_invoice_number"],
+                "invoice_date": extracted["invoice_date"],
+                "received_date": extracted["received_date"],
+                "currency": extracted["currency"],
+                "net_amount": float(Decimal(extracted["net_amount"])),
+                "tax_amount": float(Decimal(extracted["tax_amount"])),
+                "total_amount": float(Decimal(extracted["total_amount"])),
+                "source_channel": extracted["source_channel"],
             }
         )
-        for line_number, line in enumerate(spec["lines"], 1):
+        extraction_rows.append(
+            {
+                "extraction_id": f"EXT-{invoice_id}",
+                "invoice_id": invoice_id,
+                "document_name": document_name,
+                "document_sha256": document_rows[-1]["document_sha256"],
+                "extraction_status": "succeeded",
+                "extracted_at": extracted["received_date"],
+                "extracted_fields_json": json.dumps(
+                    extracted,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ),
+            }
+        )
+        for line in extracted["lines"]:
+            line_number = line["line_number"]
+            net, tax, total = _line_amount(
+                line["quantity"],
+                Decimal(line["unit_price"]),
+                line["tax_code"],
+                tax_rates,
+            )
             invoice_line_rows.append(
                 {
-                    **line,
+                    "po_line_id": line["po_line_id"],
+                    "sku": line["sku"],
+                    "description": line["description"],
+                    "quantity": line["quantity"],
+                    "unit_price": float(Decimal(line["unit_price"])),
+                    "tax_code": line["tax_code"],
+                    "line_net": float(net),
+                    "tax_amount": float(tax),
+                    "line_total": float(total),
                     "invoice_line_id": f"INVL-{invoice_id}-{line_number:02d}",
                     "invoice_id": invoice_id,
                     "line_number": line_number,
@@ -640,7 +735,13 @@ def _insert_generated_records(
         ":unit_price,:tax_code,:line_net,:tax_amount,:line_total)",
         invoice_line_rows,
     )
-    return truth_rows
+    connection.executemany(
+        "INSERT INTO invoice_extraction VALUES "
+        "(:extraction_id,:invoice_id,:document_name,:document_sha256,"
+        ":extraction_status,:extracted_at,:extracted_fields_json)",
+        extraction_rows,
+    )
+    return truth_rows, document_rows
 
 
 def _csv_rows(path: Path, rows: list[dict[str, Any]]) -> None:
@@ -675,6 +776,7 @@ def _ground_truth_sql(rows: list[dict[str, Any]]) -> str:
 def _export_dataset(
     connection: sqlite3.Connection,
     truth_rows: list[dict[str, Any]],
+    document_rows: list[dict[str, str]],
     output_dir: Path,
     summary: dict[str, Any],
     seed: int,
@@ -718,6 +820,20 @@ def _export_dataset(
         _ground_truth_sql(truth_rows),
         encoding="utf-8",
     )
+    documents_dir = output_dir / "documents"
+    documents_dir.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(
+        documents_dir / "invoice_documents.zip",
+        "w",
+        compression=zipfile.ZIP_DEFLATED,
+        compresslevel=9,
+    ) as archive:
+        for document in sorted(document_rows, key=lambda row: row["document_name"]):
+            entry = zipfile.ZipInfo(document["document_name"], date_time=(1980, 1, 1, 0, 0, 0))
+            entry.compress_type = zipfile.ZIP_DEFLATED
+            entry.create_system = 3
+            entry.external_attr = 0o100644 << 16
+            archive.writestr(entry, document["content"].encode("utf-8"))
     (output_dir / "validation.json").write_text(
         json.dumps(summary, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
@@ -736,6 +852,7 @@ def _export_dataset(
                     "tolerances": rules["tolerances"],
                     "tax_rates": rules["tax_rates"],
                     "line_generation": rules["line_generation"],
+                    "po_line_count_distribution": rules["po_line_count_distribution"],
                 },
             },
             indent=2,
@@ -765,6 +882,7 @@ def _export_dataset(
                 "seed": seed,
                 "scale": scale,
                 "row_counts": counts,
+                "table_row_counts": summary["counts"],
                 "checksums_sha256": checksums,
             },
             indent=2,
@@ -788,7 +906,13 @@ def generate_dataset(
     rng = random.Random(actual_seed)
     connection = _connect()
     try:
-        truth_rows = _insert_generated_records(connection, rng, counts, rules, scale)
+        truth_rows, document_rows = _insert_generated_records(
+            connection,
+            rng,
+            counts,
+            rules,
+            scale,
+        )
         evaluate_invoices(connection)
         expected_table_counts = {
             "vendor": counts["vendors"],
@@ -796,13 +920,24 @@ def generate_dataset(
             "purchase_order_line": counts["purchase_order_lines"],
             "goods_receipt": counts["goods_receipts"],
             "invoice": counts["invoices"],
+            "invoice_extraction": counts["invoices"],
         }
         summary = validate_database(connection, truth_rows, expected_table_counts)
         if not summary["passed"]:
             raise RuntimeError("Generated dataset failed validation: " + "; ".join(summary["errors"]))
         connection.commit()
         output_dir.mkdir(parents=True, exist_ok=True)
-        _export_dataset(connection, truth_rows, output_dir, summary, actual_seed, scale, counts, rules)
+        _export_dataset(
+            connection,
+            truth_rows,
+            document_rows,
+            output_dir,
+            summary,
+            actual_seed,
+            scale,
+            counts,
+            rules,
+        )
         return summary
     finally:
         connection.close()
