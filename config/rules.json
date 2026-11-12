@@ -1,0 +1,44 @@
+{
+  "seed": 20261022,
+  "year": 2026,
+  "counts": {
+    "vendors": 300,
+    "purchase_orders": 1500,
+    "purchase_order_lines": 2200,
+    "goods_receipts": 1800,
+    "invoices": 2000
+  },
+  "invoice_mix": {
+    "clean": 0.70,
+    "price_variance": 0.10,
+    "quantity_mismatch": 0.08,
+    "duplicate": 0.05,
+    "missing_receipt": 0.04,
+    "tax_vendor_error": 0.03
+  },
+  "tolerances": {
+    "price_variance_pct": 0.02,
+    "money_inr": 0.01
+  },
+  "tax_rates": {
+    "T0": 0.0,
+    "T5": 0.05,
+    "T12": 0.12,
+    "T18": 0.18
+  },
+  "line_generation": {
+    "quantity_min": 1,
+    "quantity_max": 40,
+    "unit_price_step_inr": 50,
+    "unit_price_steps_min": 1,
+    "unit_price_steps_max": 100
+  },
+  "approval": {
+    "level1_limit_inr": 100000,
+    "payment_delay_days": 7
+  },
+  "receipt_mix": {
+    "no_receipt_purchase_orders": 80,
+    "two_receipt_purchase_orders": 380
+  }
+}
