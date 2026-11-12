@@ -1,0 +1,76 @@
+{
+  "counts": {
+    "approval": 1894,
+    "goods_receipt": 1800,
+    "goods_receipt_line": 2639,
+    "invoice": 2000,
+    "invoice_line": 2914,
+    "payment": 1400,
+    "purchase_order": 1500,
+    "purchase_order_line": 2200,
+    "vendor": 300
+  },
+  "errors": [],
+  "metrics": {
+    "approval_policy_accuracy": 1.0,
+    "blocked_payment_ready_count": 0,
+    "decision_accuracy": 1.0,
+    "decision_confusion_matrix": {
+      "ARITHMETIC_ANOMALY": {
+        "ARITHMETIC_ANOMALY": 8
+      },
+      "CLOSED_VENDOR": {
+        "CLOSED_VENDOR": 15
+      },
+      "DATE_ANOMALY": {
+        "DATE_ANOMALY": 7
+      },
+      "DUPLICATE": {
+        "DUPLICATE": 100
+      },
+      "MATCHED": {
+        "MATCHED": 1400
+      },
+      "MISSING_RECEIPT": {
+        "MISSING_RECEIPT": 80
+      },
+      "PRICE_VARIANCE": {
+        "PRICE_VARIANCE": 200
+      },
+      "QUANTITY_MISMATCH": {
+        "QUANTITY_MISMATCH": 160
+      },
+      "TAX_MISMATCH": {
+        "TAX_MISMATCH": 30
+      }
+    },
+    "decision_distribution": {
+      "ARITHMETIC_ANOMALY": 8,
+      "CLOSED_VENDOR": 15,
+      "DATE_ANOMALY": 7,
+      "DUPLICATE": 100,
+      "MATCHED": 1400,
+      "MISSING_RECEIPT": 80,
+      "PRICE_VARIANCE": 200,
+      "QUANTITY_MISMATCH": 160,
+      "TAX_MISMATCH": 30
+    },
+    "duplicate_pair_accuracy": 1.0,
+    "duplicate_precision": 1.0,
+    "duplicate_recall": 1.0,
+    "duplicate_true_positives": 100,
+    "issue_distribution": {
+      "clean": 1400,
+      "duplicate": 100,
+      "missing_receipt": 80,
+      "price_variance": 200,
+      "quantity_mismatch": 160,
+      "tax_vendor_error": 60
+    },
+    "payment_policy_accuracy": 1.0,
+    "payment_ready_count": 1400,
+    "payment_ready_rate": 0.7,
+    "route_accuracy": 1.0
+  },
+  "passed": true
+}

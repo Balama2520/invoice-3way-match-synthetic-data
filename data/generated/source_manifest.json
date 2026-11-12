@@ -1,0 +1,35 @@
+{
+  "external_sources": [],
+  "generator": "src.generator",
+  "license": "MIT (see ../../LICENSE)",
+  "provenance": "Entirely synthetic; generated locally by this project.",
+  "rules": {
+    "invoice_mix": {
+      "clean": 0.7,
+      "duplicate": 0.05,
+      "missing_receipt": 0.04,
+      "price_variance": 0.1,
+      "quantity_mismatch": 0.08,
+      "tax_vendor_error": 0.03
+    },
+    "line_generation": {
+      "quantity_max": 40,
+      "quantity_min": 1,
+      "unit_price_step_inr": 50,
+      "unit_price_steps_max": 100,
+      "unit_price_steps_min": 1
+    },
+    "tax_rates": {
+      "T0": 0.0,
+      "T12": 0.12,
+      "T18": 0.18,
+      "T5": 0.05
+    },
+    "tolerances": {
+      "money_inr": 0.01,
+      "price_variance_pct": 0.02
+    }
+  },
+  "scale": 1.0,
+  "seed": 20261022
+}

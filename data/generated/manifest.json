@@ -1,0 +1,36 @@
+{
+  "checksums_sha256": {
+    "dataset.sqlite": "9a832bc2549e0068dbb4fbca0a53b576f27109aafeac67cf7e3a528f0453f4d7",
+    "derived.json": "b4fdb35a0121d2c98a548fbda3e7cbd6df3f992cec8e66db9442054c3343ef5a",
+    "derived/invoice_line_po_line_match.csv": "3470f0f0e1a5c89243afc7565a3529ef8de71a503928b09fd7d0ce2a872ea7ca",
+    "derived/invoice_match_result.csv": "4a8aefe47ddde34cd22b95a853d214f5f46e872eeb3f5a5ba60f13b0e41d2db4",
+    "ground_truth.csv": "009a86ad11fe8a15c96bb6c53cfae55ebf71dc5e87f365a29648d509bb3d68fc",
+    "ground_truth.json": "c0a460d90dd532a71ae8e97ad7e1c2824dccdfeb8a920f963730d21b0e7ece17",
+    "ground_truth.sql": "9447a83fb855917fdb9add798f5a982235e6e7afab6fdbde236bda24857e24ef",
+    "input.json": "a03e374952c8b6ae404b98827e4b6ab35913848f71c30f251586d8728a6fd8d9",
+    "input/approval.csv": "6b5c01633e986a4bcc105a84c76228505f2cbfecb67e909cb9e185e05c3541f2",
+    "input/approval_event.csv": "d2467737f17b0fb59bd239c8b2f2d172fdee38070ebb6405ccaee7024a6de248",
+    "input/goods_receipt.csv": "ba3ea6767aad9fb7e40e631bf88f892e2b2353582c64ebe7ce9a7c52fdca141a",
+    "input/goods_receipt_line.csv": "f1ae827f0b5e69c867879953e86406601f6732bdf10a2198e208ec758952f975",
+    "input/invoice.csv": "277b57ba63dca4a2aa4f5ad9e7ab7b8ff208388b20383c615c6b4ee60b89b330",
+    "input/invoice_line.csv": "bf6b3c60e0eac983a7812b7953dd5e93b5494e22fa4dc794d22e18fae53c0ca1",
+    "input/invoice_status_event.csv": "0c6fe81dc67f0c00cfc9184f7567aa3070037f0aec445811b4a6f1afbbc49ee7",
+    "input/payment.csv": "8197e91a489170686e8d2bd566c97f9c7989db35220c5f7167d1e26d731de446",
+    "input/payment_event.csv": "c2713ac2af070f2cf3f14a5871fd49d31cbac4c4914b1fb13ef70be14c3b5763",
+    "input/purchase_order.csv": "e854ecbd66153e34b5523f697ce3f7c0dc69daa9202e327528f01b6386a332eb",
+    "input/purchase_order_line.csv": "3e35b0a545be9c3451644164ad058748f971b055327dd2b780c49c1a7e4c3fb0",
+    "input/vendor.csv": "5f0505903858879a3e0a2de2401ea8c2acc433d3b64e265c2370a2c76cf38e79",
+    "seed.sql": "d33acaac24ae357f099a465d0b3654b2aa362a5f0fa073cd09d461f7dcf6f53e",
+    "source_manifest.json": "617dc3b346d579f1d612eabf9d2b2584a8a63411d3e4039311c1283840582586",
+    "validation.json": "088c5effcf41741d14b3b1ac0fd23e04599606dc68c51e7caea6a94a39052b03"
+  },
+  "row_counts": {
+    "goods_receipts": 1800,
+    "invoices": 2000,
+    "purchase_order_lines": 2200,
+    "purchase_orders": 1500,
+    "vendors": 300
+  },
+  "scale": 1.0,
+  "seed": 20261022
+}
