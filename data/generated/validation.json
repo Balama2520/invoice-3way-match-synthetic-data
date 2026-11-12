@@ -1,10 +1,11 @@
 {
   "counts": {
-    "approval": 1894,
+    "approval": 1851,
     "goods_receipt": 1800,
-    "goods_receipt_line": 2639,
+    "goods_receipt_line": 2664,
     "invoice": 2000,
-    "invoice_line": 2914,
+    "invoice_extraction": 2000,
+    "invoice_line": 2910,
     "payment": 1400,
     "purchase_order": 1500,
     "purchase_order_line": 2200,
@@ -59,6 +60,7 @@
     "duplicate_precision": 1.0,
     "duplicate_recall": 1.0,
     "duplicate_true_positives": 100,
+    "extraction_field_accuracy": 1.0,
     "issue_distribution": {
       "clean": 1400,
       "duplicate": 100,

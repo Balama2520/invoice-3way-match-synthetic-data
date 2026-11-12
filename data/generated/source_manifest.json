@@ -19,6 +19,16 @@
       "unit_price_steps_max": 100,
       "unit_price_steps_min": 1
     },
+    "po_line_count_distribution": {
+      "1": 1104,
+      "2": 222,
+      "3": 100,
+      "4": 40,
+      "5": 20,
+      "6": 8,
+      "7": 4,
+      "8": 2
+    },
     "tax_rates": {
       "T0": 0.0,
       "T12": 0.12,
