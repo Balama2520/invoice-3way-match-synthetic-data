@@ -72,9 +72,9 @@ Rules that are not in DDL (arithmetic, date order, lifecycle) are enforced by
 | invoice_date | DATE | Y | ISO date | date | No | normally >= po_date (defect: DATE_BEFORE_PO) |
 | received_date | DATE | Y | ISO date | date | No | >= invoice_date |
 | currency | TEXT | Y | INR | - | No | fixed |
-| net_amount | NUMERIC | Y | >= 0 | INR | No | = sum of line_net (defect: TOTAL_DIFFERS_FROM_LINE_SUM) |
+| net_amount | NUMERIC | Y | >= 0 | INR | No | = sum of line_net |
 | tax_amount | NUMERIC | Y | >= 0 | INR | No | = sum of line tax_amount |
-| total_amount | NUMERIC | Y | >= 0 | INR | No | = net_amount + tax_amount |
+| total_amount | NUMERIC | Y | >= 0 | INR | No | normally = net_amount + tax_amount; defect: TOTAL_DIFFERS_FROM_LINE_SUM |
 | source_channel | TEXT | Y | email, portal, edi | - | No | intake channel |
 
 ## 7. invoice_line

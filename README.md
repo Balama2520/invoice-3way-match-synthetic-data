@@ -34,6 +34,19 @@ Run the tests:
 python -m pytest -q
 ```
 
+## Verify everything
+
+Run the release checks on Windows:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/verify.ps1
+```
+
+The script runs the tests, compares two seeded generations and a fresh generation
+against `data/generated/`, checks input and derived CSV headers for ground-truth
+labels, and verifies the main SQLite table row counts. It exits non-zero if any
+check fails.
+
 ## Generated files
 
 - `data/generated/dataset.sqlite` and `seed.sql`: input schema and records,
