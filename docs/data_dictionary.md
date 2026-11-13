@@ -106,7 +106,7 @@ Rules that are not in DDL (arithmetic, date order, lifecycle) are enforced by
 | invoice_id | TEXT | Y | FK invoice | - | Yes (0..1 per invoice) | invoice must be approved and not blocked |
 | approval_id | TEXT | Y | FK approval | - | No | approval must be approved |
 | amount | NUMERIC | Y | > 0 | INR | No | equals invoice total_amount |
-| scheduled_date | DATE | Y | ISO date | date | No | approval date + payment_release_delay_days |
+| scheduled_date | DATE | Y | ISO date | date | No | approval date + `payment_delay_days` from `config/rules.json` |
 
 ## 10. Supporting tables
 | Table | Purpose | Key fields |
