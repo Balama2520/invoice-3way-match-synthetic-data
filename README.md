@@ -13,6 +13,12 @@ for evaluation.
   standard library
 - `pytest` is used for tests
 
+Install the test dependency from the project directory:
+
+```powershell
+python -m pip install -r requirements.txt
+```
+
 ## Generate the full dataset
 
 From the project directory:
@@ -24,9 +30,14 @@ python -m src generate --output data/generated --seed 20261022
 The default scale (`1.0`) produces 300 vendors, 1,500 purchase orders, 2,200 PO
 lines, 1,800 goods receipts and 2,000 invoices. Use `--scale 0.1` for a 10% starter
 dataset, or a value from `0.01` through `10` for another scale. The same seed and
-scale produce byte-identical exported files.
+scale have produced byte-identical files on the same tested Windows/Python
+environment. Byte identity across operating systems or Python environments is
+not guaranteed.
 Open `data/generated/dashboard.html` in a browser to review metrics and filter
 invoice exceptions.
+
+The [hosted dashboard](https://invoice-3way-match-synthetic-data.netlify.app/)
+is available after the static site deploys.
 
 Run the tests:
 
@@ -123,3 +134,12 @@ PO date. The exact subtype and expected decision/route are documented in
   evaluation metrics.
 - `docs/data_dictionary.md`, `docs/er_diagram.md`, `docs/assumptions.md`: schema,
   cardinalities, lifecycle and generation assumptions.
+- `docs/limitations.md`: supported inputs, integration boundaries and
+  reproducibility scope.
+
+## AI usage
+
+AI assistance was used during development. See
+[`ai_usage/ai_disclosure.md`](ai_usage/ai_disclosure.md) and
+[`ai_usage/prompts.md`](ai_usage/prompts.md) for the disclosure and prompt log.
+The candidate should verify and complete these records before submission.
