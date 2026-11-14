@@ -45,4 +45,5 @@ not included. Typos are kept as typed. Dates are 12-13 Nov 2026 (IST).
 
 ## Coding agent (GitHub Copilot)
 
-<<PASTE THE EXPORTED PROMPT HISTORY HERE, then delete this line. If the tool cannot export, say so in ai_disclosure.md.>>
+The coding agent's chat history could not be exported from the tool, so it is not reproduced verbatim. In summary, I asked it to build the generator, matcher, validation, tests and documentation, to run a QA and verification pass, and to run an independent release audit, using prompts written with Claude.
+
