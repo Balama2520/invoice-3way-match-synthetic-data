@@ -152,5 +152,6 @@ previous event's to_status; no payment_ready or paid for blocked, exception or r
 | tax_vendor_error | TOTAL_DIFFERS_FROM_LINE_SUM | ARITHMETIC_ANOMALY | operations_analyst |
 | tax_vendor_error | DATE_BEFORE_PO | DATE_ANOMALY | operations_analyst |
 
-Open point for slot 4: vendors with status on_hold exist for master-data realism but
-no invoices are generated against them in v1.
+**Vendor-status coverage:** Vendors with status `on_hold` are included for
+master-data realism. No invoices are generated for these vendors in this
+version.

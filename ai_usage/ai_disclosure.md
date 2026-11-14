@@ -1,35 +1,40 @@
-# AI usage disclosure
+# AI Use Disclosure
 
-## Tools I used
-- Claude (chat, claude.ai): project planning and schedule, repository setup commands,
-  schema, data dictionary and ER diagram drafting, prompts for the coding agent,
-  documentation drafts, and review of the agent's output and reports.
-- GitHub Copilot (agent mode in VS Code): wrote most of the generator, intake parser,
-  matcher, validation, tests, dashboard and CI workflow, and later ran a verification
-  pass (documentation fact-check, extra tests, a verification script) and an
-  independent release audit.
+## Tools used
 
-## Where AI accelerated me
-Boilerplate, schema drafting, test scaffolding, documentation drafts and the
-dashboard.
+- **Claude:** I used Claude for project planning, requirements analysis, data
+  model and policy discussions, documentation drafts, and review of project
+  progress.
+- **GitHub Copilot in VS Code:** I used Copilot agent mode for implementation,
+  tests, documentation, the dashboard, CI, and follow-up verification.
 
-## Where I relied on it heavily
-The first implementation of the generator, matcher and validation was written by the
-coding agent from my prompts. The documents in docs/ and the AI usage records were
-also drafted with AI help.
+## How AI contributed
 
-## What I personally did
-- Created the public repository and the local environment, and set the project scope
-  and deadline plan.
-- Ran the test suite and the audit commands myself on a fresh clone of the
-  repository.
-- Merged the agent's verification and audit fixes through pull requests 1 and 2.
-- Acted on the independent audit findings: the README overstated reproducibility
-  (byte-identical output was only verified on Windows), a configuration key was
-  misnamed in the data dictionary, requirements.txt was in the wrong encoding and
-  listed unused packages, and the limitations page was missing. These are fixed in
-  the repository.
-- Reviewing the code: I reviewed the agents' QA and release-audit reports and ran the tests myself; I did not read every source file line by line.
+AI assistance was substantial. Copilot produced much of the first implementation
+of the generator, invoice intake, matcher, validation, and tests. AI tools also
+helped draft the data dictionary, ER diagram, assumptions, limitations, and
+dashboard. I reviewed the results, requested changes, and remain responsible for
+understanding and explaining the submitted project.
 
-## Prompt history
-ai_usage/prompts.md lists every prompt I sent to Claude. The prompts I sent to Copilot could not be fully exported from the tool, so that section summarizes them instead of reproducing them verbatim.
+## Work I personally did
+
+- I defined the project scope and selected or approved the matching rules and
+  required edge cases.
+- I created and managed the public repository and local project setup.
+- I ran the tests and release checks, reviewed AI-generated work, and requested
+  corrections.
+- I made changes to project source code and documentation and merged the
+  verification and release-fix work through pull requests 1 and 2.
+- I can explain the generator and matcher and the decisions they implement.
+
+I did not write the entire implementation unaided, and I did not review every
+source file line by line. The core implementation was AI-assisted as described
+above.
+
+## Prompt record
+
+[`prompts.md`](prompts.md) is a summary, not a complete verbatim transcript.
+Claude prompt topics are summarized because the exact history is not fully
+represented here. Interactive Copilot prompts could not be fully exported, so
+the main Copilot tasks are summarized rather than quoted. No missing prompt text
+has been invented.

@@ -21,6 +21,16 @@ The workflow is designed to make decisions inspectable: match checks, routes,
 status events, source-document hashes, evaluation results, and generated
 artifacts are retained for review.
 
+## Engineering focus
+
+This project demonstrates:
+
+- Relational data modeling with explicit keys, relationships, and event history.
+- Seeded synthetic-data generation with documented edge cases and ground truth.
+- Rule-based matching with explainable decisions and exception routing.
+- Validation and tests for arithmetic, referential integrity, lifecycle, and
+  payment eligibility.
+
 ## Quick start
 
 ### Requirements
@@ -214,9 +224,15 @@ For the complete scope and constraints, see [docs/limitations.md](docs/limitatio
 ## AI use
 
 Claude and GitHub Copilot were used during planning, implementation, testing, and
-documentation. The project's [AI-use disclosure](ai_usage/ai_disclosure.md) and
-[prompt-history notes](ai_usage/prompts.md) describe that assistance.
+documentation. The [AI-use disclosure](ai_usage/ai_disclosure.md) describes how
+they contributed. The [prompt-history summary](ai_usage/prompts.md) is explicitly
+a summary, not a complete verbatim transcript.
 
 ## License
 
 This project is released under the [MIT License](LICENSE).
+
+## Contact
+
+For questions about the project or a walkthrough, connect with
+[Bala Maneesh Ayanala on GitHub](https://github.com/Balama2520).

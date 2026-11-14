@@ -37,7 +37,7 @@ erDiagram
 | InvoiceLine - PurchaseOrderLine | N:M via invoice_line_po_line_match | 0..N | engine-derived bridge |
 | Invoice - Approval | 1:N (L1, L2) | only eligible invoices | |
 | Invoice - Payment | 1:0..1 | only approved, unblocked | |
-| Entity - events | 1:N | at least 1 event | append-only, no overwrites |
+| Invoice / Approval / Payment - event history | 1:N | event tables are defined for these records | state changes are recorded as distinct event rows |
 
 Effective dates: vendor.effective_from / effective_to. Lifecycle states: see section 11 of
 the data dictionary.
