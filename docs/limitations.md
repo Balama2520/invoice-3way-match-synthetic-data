@@ -16,3 +16,10 @@
 - The matching rules, INR currency, approval threshold, and synthetic source
   document format are fixed by the project's configuration and are not a
   substitute for organization-specific policy review.
+- Strict quantity policy: an invoice quantity must equal the PO line quantity and
+  not exceed the posted receipt quantity. A legitimate partial invoice for partly
+  delivered goods is therefore routed to QUANTITY_MISMATCH.
+- Rules are shared by the generator and the matcher, so 100% agreement with ground
+  truth shows the matcher implements the documented rules consistently.
+- Vendors on hold exist in the master data but have no invoices.
+- Only 14 clean invoices sit at the 2% price boundary.

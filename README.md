@@ -142,4 +142,21 @@ PO date. The exact subtype and expected decision/route are documented in
 AI assistance was used during development. See
 [`ai_usage/ai_disclosure.md`](ai_usage/ai_disclosure.md) and
 [`ai_usage/prompts.md`](ai_usage/prompts.md) for the disclosure and prompt log.
-The candidate should verify and complete these records before submission.
+The disclosure and the prompt log are my own records.
+
+## How I verified it
+- Tests: `python -m pytest -q` runs 28 tests. They pass on Windows (Python 3.14) and
+  in a fresh Linux clone (Python 3.12).
+- Release checks: `scripts/verify.ps1` (see "Verify everything") compares two
+  same-seed generations and a fresh generation with the committed data.
+- Label leakage: no ground-truth column appears in any input or derived CSV header,
+  and `src/matcher.py` never reads ground-truth labels (both covered by tests).
+- Platform note: text exports use the operating system's line endings and the
+  SQLite and zip files can differ between platforms, so the checksums in
+  `manifest.json` are for Windows output. On another operating system, compare two
+  runs made on that system.
+
+## Limitations
+See docs/limitations.md. In short: synthetic plain-text invoices (not OCR), rules
+shared by the generator and matcher, no ERP or payment integration, payments
+scheduled not released.
